@@ -4,72 +4,66 @@ session_start();
 $file = fopen("cats.txt", "r");
 $visitors_file = fopen("log.json", "a+");
 
+$cache_file = './data/cache'.$_GET["N"];
+$time  = null;
+$change_every = 60;
+
 if ($file) {
     $array = explode("\n", fread($file, filesize("cats.txt")));
 }
 
-if (isset($_GET["N"]))
-{
-    $i = $_GET["N"];
-    echo $array[$i-1];
-    echo ", ";
-    echo $array[$i];
-    echo ", ";
-    echo $array[$i+1];
-}
-else {
-    echo " ";
+if(is_file($cache_file)) {
+    list($n, $time, $cat1, $cat2, $cat3) = explode(', ', file_get_contents($cache_file));
 }
 
-///////////////////////////PARASOMA DATA
-fwrite($visitors_file, "datetime: ");
-date_default_timezone_set('Europe/Vilnius');
-$inTwoMonths = 60 * 60 * 24 * 60 + time();
-setcookie('lastVisit', date("Y-m-d H:i:s"), $inTwoMonths);
-if(isset($_COOKIE['lastVisit']))
-
-{
-    $visit = $_COOKIE['lastVisit'];
+if(!$time || time() - $time > $change_every) {
+    $cat1 = rand(0,count($array) - 3);
+    $cat2 = rand($cat1 + 1,count($array) - 2);
+    $cat3 = rand($cat2 + 1,count($array) - 1);
+    if ($_GET["N"] > 0 && $_GET["N"] < 1000001) {
+        file_put_contents($cache_file, $_GET["N"] . ', ' . time() . ', ' . $cat1 . ', ' . $cat2 . ', ' . $cat3);
+    }
 }
-fwrite($visitors_file, $visit);
-///////////////////////////
 
-///////////////////////////PARASOMAS N
-fwrite($visitors_file, ", N: ");
-if (isset($_GET["N"]))
-{
-    fwrite($visitors_file, $_GET["N"]);
+if ($_GET["N"] > 0 && $_GET["N"] < 1000001) {
+    echo ($array[$cat1]) . ', ' . ($array[$cat2]) . ', ' . ($array[$cat3]);
+} else {
+    echo "Pick a number between 1 and 1000000!";
 }
-///////////////////////////
 
-///////////////////////////SURASOMOS KATES
-fwrite($visitors_file, ", Cats: ");
-$i = $_GET["N"];
-fwrite($visitors_file,"[");
-fwrite($visitors_file, $array[$i-1]);
-fwrite($visitors_file,", ");
-fwrite($visitors_file, $array[$i]);
-fwrite($visitors_file, ", ");
-fwrite($visitors_file, $array[$i+1]);
-fwrite($visitors_file,"]");
-///////////////////////////
+if ($_GET["N"] > 0 && $_GET["N"] < 1000001) {
+    //Data
+    fwrite($visitors_file, "datetime: ");
+    date_default_timezone_set('Europe/Vilnius');
+    $inTwoMonths = 60 * 60 * 24 * 60 + time();
+    setcookie('lastVisit', date("Y-m-d H:i:s"), $inTwoMonths);
+    if (isset($_COOKIE['lastVisit'])) {
+        $visit = $_COOKIE['lastVisit'];
+    }
+    fwrite($visitors_file, $visit);
 
-////////////////////////////SKAICIUOJAMI VISI LANKYTOJAI
-if(isset($_SESSION['views']))
-    $_SESSION['views'] = $_SESSION['views']+1;
-else
-    $_SESSION['views']=1;
-fwrite($visitors_file, ", countAll: ");
-fwrite($visitors_file, $_SESSION['views']);
+    //N
+    fwrite($visitors_file, ", N: " . $_GET["N"]);
 
-///////////////////////////SKAICIUOJAMA N
-fwrite($visitors_file, ", countN: ");
-//fwrite($visitors_file, $lala);
-fwrite($visitors_file, "\n");
-///////////////////////////
+    //Kates
+    fwrite($visitors_file, ', Cats: [' . ($array[$cat1]) . ', ' . ($array[$cat2]) . ', ' . ($array[$cat3]) . ']');
 
-////////////////////////////UZDAROMI FAILAI
-fclose($file);
-fclose($visitors_file);
-///////////////////////////
-?>
+    //Visi lankytojai
+    if (isset($_SESSION['views'])) {
+        $_SESSION['views'] = $_SESSION['views'] + 1;
+    } else {
+        $_SESSION['views'] = 1;
+    }
+    fwrite($visitors_file, ", countAll: " . $_SESSION['views']);
+
+    //Puslapio lankytojai
+    if (isset($_SESSION['views'. $_GET["N"]])) {
+        $_SESSION['views'. $_GET["N"]] = $_SESSION['views'. $_GET["N"]] + 1;
+    } else {
+        $_SESSION['views'. $_GET["N"]] = 1;
+    }
+    fwrite($visitors_file, ", countN: " . $_SESSION['views'. $_GET["N"]] . "\n");
+
+    fclose($file);
+    fclose($visitors_file);
+}
